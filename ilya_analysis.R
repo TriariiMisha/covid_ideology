@@ -106,6 +106,19 @@ cabinets_data <- cabinets_df %>%
   ungroup() %>%
   rename(c('cabinet' = 'cabinet_party'))
 
+## investigate time-variance in cabinets ideology
+cabinets_data %>%
+  filter(cabinet == 1) %>%
+  mutate(year = lubridate::year(start_date),
+         decade = year - year %% 2) %>%
+  group_by(decade) %>%
+  summarise(across(c('left_right', 'state_market', 'liberty_authority'), mean)) %>%
+  gather('varname', 'varvalue',
+         c('left_right', 'state_market', 'liberty_authority')) %>%
+  ggplot(aes(decade, varvalue, color = varname)) +
+    geom_line()
+
+# NEXT STAGE: analyse COVID MEASURES as cabinet and non-cabinet ideologies are initially analysed
 
 
 pc_data <- cabinets_data %>%
