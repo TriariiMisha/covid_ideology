@@ -1,16 +1,12 @@
 library(tidyverse)
 
 #### covid data
-URL_prefix <- 'https://raw.githubusercontent.com/OxCGRT/covid-policy-tracker/master/data/'
+URL_prefix <- 'https://raw.githubusercontent.com/OxCGRT/covid-policy-tracker/master/data/timeseries/'
 files <- c(
-  'OxCGRT_nat_differentiated_withnotes_2020.csv',
-  'OxCGRT_nat_differentiated_withnotes_2021.csv',
-  'OxCGRT_nat_differentiated_withnotes_2022.csv',
-  'OxCGRT_nat_latest.csv',
-  'OxCGRT_nat_latest_allchanges.csv',
-  'OxCGRT_nat_latest_combined.csv',
-  'OxCGRT_nat_latest_responses.csv',
-  'OxCGRT_vaccines_full.csv'
+  'containment_health_index_avg.csv',  # filenames with appropriate indices
+  'economic_support_index.csv',
+  'government_response_index_avg.csv',
+  'stringency_index_avg.csv'
 )
 paths <- paste0(URL_prefix, files)
 
@@ -18,14 +14,20 @@ dfs <- lapply(paths, function(path) {
   read_csv(path)
 })
 
-covid_data <- dfs[[2]] %>%
-  select(c('CountryName', 'Date', 'V4_Mandatory Vaccination (summary)')) %>%
-  set_names(., c('country', 'date', 'manvac')) %>%
-  na.omit() %>%
-#  mutate(date = substr(date, 1, 6)) %>%
-  group_by(country) %>%
-  summarise(is_manvac = as.numeric(any(manvac == 1))) %>%
-  ungroup()
+### combine indices into one dataset
+varnames <- c('containment_health_index', 'economic_support_index', 'government_response_index', 'stringency_index')
+
+covid_data <- map2(
+  dfs, varnames, function(df, varname) {
+    df %>%
+      filter(jurisdiction == 'NAT_TOTAL') %>%
+      select(-c('...1', 'region_code', 'region_name', 'jurisdiction')) %>%
+      gather(key = 'date', value = !!varname, -c('country_code', 'country_name')) %>%
+      mutate(date = lubridate::as_date())
+  }
+)
+
+View(covid_data[[2]])
 
 
 #### parties & cabinets data
